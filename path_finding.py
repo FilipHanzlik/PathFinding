@@ -40,12 +40,18 @@ class Button:
         self.func = func  # this function will be use if the button is clicked
         self.texts = texts
     
+    def __str__(self):
+        return str(list(self.texts.keys()))
+    
     def is_clicked(self, pos):
         """ Check if the button was clicked and if yes run the function that is assigned to the button """
-
         if pos[0] > self.x and pos[0] < self.x + self.width:
             if pos[1] > self.y and pos[1] < self.y + self.height:
-                self.func(self)
+                if list(self.texts.keys())[0] == 'Visualizations:':
+                    print('here')
+                    self.func(self)
+                else:
+                    self.func()
 
     def draw(self, surface):
         if self.border_width:
@@ -128,6 +134,9 @@ class Cube:
 
     def is_obstacle(self):
         return self.color == BLACK
+    
+    def is_path(self):
+        return self.color == PURPLE
 
     def is_closed(self):
         return self.color == RED
@@ -170,20 +179,30 @@ def main(surface):
     buttons = []
 
     visualisation_button_texts = {
-        'Visualizations:  ': {
+        'Visualizations:': {
             'font': 'comicsans',      
             'height': 50,               # height in percents
             'color': BLACK
         },
         
-        'ON': {
+        '  ON': {
             'font': 'comicsans',
             'height': 70,
             'color': GREEN
         }
     }
     visualisation_button = Button(WIDTH_OF_GRID, 0, 50, WIDTH - WIDTH_OF_GRID, WHITE, visualisation_button_function, border_width=3, border_color=GREEN, texts=visualisation_button_texts)
-    buttons.append(visualisation_button)
+    
+    clear_path_button_texts = {
+        'Clear path': {
+            'font': 'comicsans',
+            'height': 50,
+            'color': BLACK
+        }
+    }
+    clear_path_button = Button(WIDTH_OF_GRID, visualisation_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_path(grid), border_width=3, border_color=BLACK, texts=clear_path_button_texts)
+    
+    buttons.extend([visualisation_button, clear_path_button])
     ## end of buttons ##
 
     while zakladnicyklus:
@@ -196,10 +215,9 @@ def main(surface):
 
             if pygame.mouse.get_pressed()[0]: # Left mouse button
                 pos = pygame.mouse.get_pos()
-                if pos[0] > WIDTH_OF_GRID:
+                if pos[0] >= WIDTH_OF_GRID:
                     for button in buttons:
                         button.is_clicked(pos)
-                        break
                     continue
                 
                 row, col = get_row_col_from_pos(pos)
@@ -234,6 +252,7 @@ def main(surface):
                         for cube in row:
                             cube.get_neighbors(grid)
                     ALGORITM_RUNNING = True
+                    clear_path(grid)
                     algoritms(surface, 'A*', grid, buttons, start, end)
                     ALGORITM_RUNNING = False
             
@@ -346,15 +365,15 @@ def algoritms(surface, type, grid, buttons, start, end):
 
 def visualisation_button_function(button):
     global VISUALISATION
-    if 'ON' in button.texts.keys():
+    if 'ON' in list(button.texts.keys())[1].split(' '):
         button.texts = {
-            'Visualizations:  ': {
+            'Visualizations:': {
                 'font': 'comicsans',      
                 'height': 50,
                 'color': BLACK
             },
             
-            'OFF': {
+            ' OFF': {
                 'font': 'comicsans',
                 'height': 70,
                 'color': RED
@@ -364,13 +383,13 @@ def visualisation_button_function(button):
         VISUALISATION = False
     else:
         button.texts = {
-            'Visualizations: ': {
+            'Visualizations:': {
                 'font': 'comicsans',      
                 'height': 50,
                 'color': BLACK
             },
             
-            'ON': {
+            ' ON': {
                 'font': 'comicsans',
                 'height': 70,
                 'color': GREEN
@@ -400,6 +419,13 @@ def draw_grid(surface):
     for i in range(ROWS):
         pygame.draw.line(surface, GREY, (0, i * width_of_cubes), (WIDTH_OF_GRID, i * width_of_cubes))
         pygame.draw.line(surface, GREY, (i * width_of_cubes, 0), (i * width_of_cubes, WIDTH_OF_GRID))
+
+
+def clear_path(grid):
+    for row in grid:
+        for cube in row:
+            if cube.is_path() or cube.is_open() or cube.is_closed():
+                cube.reset()
 
 
 def get_row_col_from_pos(pos):
