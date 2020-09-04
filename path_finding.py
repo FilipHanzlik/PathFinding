@@ -11,6 +11,9 @@ HEIGHT_OF_GRID = 800
 ROWS = 50
 VISUALISATION = True
 ALGORITM_RUNNING = False
+start, end = None, None
+TYPES_OF_ALGORITMS = ['A*', 'Bread First Search']
+TYPE_OF_ALGORITM = TYPES_OF_ALGORITMS[0]
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('path_finding algoritms')
 
@@ -47,8 +50,7 @@ class Button:
         """ Check if the button was clicked and if yes run the function that is assigned to the button """
         if pos[0] > self.x and pos[0] < self.x + self.width:
             if pos[1] > self.y and pos[1] < self.y + self.height:
-                if list(self.texts.keys())[0] == 'Visualizations:':
-                    print('here')
+                if list(self.texts.keys())[0] in ['Visualizations:', 'Type:']: # These buttons needs themselves as arguments                    
                     self.func(self)
                 else:
                     self.func()
@@ -66,14 +68,20 @@ class Button:
 
         if self.texts:
             self.temp_text_width = 0
-            self.total_texts_width = sum([pygame.font.SysFont(self.texts[key]['font'], int(self.height / 100 * self.texts[key]['height'])).render(key, 1, BLACK).get_width() for key in self.texts.keys()])
+            self.total_texts_width = 0
             
             for key in self.texts.keys():
+                if self.texts[key]['active']:
+                    font = pygame.font.SysFont(self.texts[key]['font'], int(self.height / 100 * self.texts[key]['height']))
+                    text = font.render(key, 1, BLACK)
+                    self.total_texts_width += text.get_width()
 
-                font = pygame.font.SysFont(self.texts[key]['font'], int(self.height / 100 * self.texts[key]['height']))
-                text = font.render(key, 1, self.texts[key]['color'])
-                surface.blit(text, (self.x + (self.width - self.total_texts_width) // 2 + self.temp_text_width, self.y + (self.height - text.get_height()) // 2))
-                self.temp_text_width += text.get_width()
+            for key in self.texts.keys():
+                if self.texts[key]['active']:
+                    font = pygame.font.SysFont(self.texts[key]['font'], int(self.height / 100 * self.texts[key]['height']))
+                    text = font.render(key, 1, self.texts[key]['color'])
+                    surface.blit(text, (self.x + (self.width - self.total_texts_width) // 2 + self.temp_text_width, self.y + (self.height - text.get_height()) // 2))
+                    self.temp_text_width += text.get_width()
 
 
 class Queue:
@@ -169,40 +177,96 @@ class Cube:
 
 
 def main(surface):
-    global ALGORITM_RUNNING
-
+    global ALGORITM_RUNNING, start, end
     zakladnicyklus = True
-    start, end = None, None
     grid = create_grid()
 
-    ## buttons ##
+    ## buttons ## (The y coordinate of a button is thy y coordinate of the previous button plus the previous button height)
     buttons = []
 
+    # visualization button
     visualisation_button_texts = {
         'Visualizations:': {
             'font': 'comicsans',      
             'height': 50,               # height in percents
-            'color': BLACK
+            'color': BLACK,
+            'active': True
         },
         
         '  ON': {
             'font': 'comicsans',
             'height': 70,
-            'color': GREEN
+            'color': GREEN,
+            'active': True
+        },
+
+        ' OFF': {
+            'font': 'comicsans',
+            'height': 70,
+            'color': RED,
+            'active': False
         }
     }
     visualisation_button = Button(WIDTH_OF_GRID, 0, 50, WIDTH - WIDTH_OF_GRID, WHITE, visualisation_button_function, border_width=3, border_color=GREEN, texts=visualisation_button_texts)
     
+    # clear path button
     clear_path_button_texts = {
         'Clear path': {
             'font': 'comicsans',
             'height': 50,
-            'color': BLACK
+            'color': BLACK,
+            'active': True
         }
     }
     clear_path_button = Button(WIDTH_OF_GRID, visualisation_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_path(grid), border_width=3, border_color=BLACK, texts=clear_path_button_texts)
     
-    buttons.extend([visualisation_button, clear_path_button])
+    # clear all button
+    clear_all_button_texts = {
+        'Clear all': {
+            'font': 'comicsans',
+            'color': BLACK,
+            'height': 50,
+            'active': True
+        }
+    }
+    clear_all_button = Button(WIDTH_OF_GRID, clear_path_button.y + clear_path_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_all(grid), border_width=3, border_color=BLACK, texts=clear_all_button_texts)
+
+    # button for switching algoritms
+    algoritms_button_texts = {
+        'Type:': {
+            'font': 'comicsans',
+            'height': 50,
+            'color': BLACK,
+            'active': True 
+        },
+
+        ' ' + TYPES_OF_ALGORITMS[0]: {
+            'font': 'comicsans',
+            'height': 55,
+            'color': BLACK,
+            'active': True 
+        },
+
+        ' ' + TYPES_OF_ALGORITMS[1]: {
+            'font': 'comicsans',
+            'height': 45,
+            'color': BLACK,
+            'active': False
+        }
+    }
+    algoritms_button = Button(WIDTH_OF_GRID, clear_all_button.y + clear_all_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, change_algoritm_button_function, border_width=3, border_color=BLACK, texts=algoritms_button_texts)
+
+    run_button_texts = {
+        'Run': {
+            'font': 'comicsans',
+            'height': 60,
+            'color': BLACK,
+            'active': True
+        }
+    }
+    run_button = Button(WIDTH_OF_GRID, algoritms_button.y + algoritms_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: run_button_function(surface, grid, buttons), border_width=3, border_color=BLACK, texts=run_button_texts)
+
+    buttons.extend([visualisation_button, clear_path_button, clear_all_button, algoritms_button, run_button])
     ## end of buttons ##
 
     while zakladnicyklus:
@@ -253,12 +317,8 @@ def main(surface):
                             cube.get_neighbors(grid)
                     ALGORITM_RUNNING = True
                     clear_path(grid)
-                    algoritms(surface, 'A*', grid, buttons, start, end)
+                    algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
                     ALGORITM_RUNNING = False
-            
-                if event.key == pygame.K_c:
-                    start, end = None, None
-                    grid = create_grid()
 
         redraw_window(surface, grid, buttons)
 
@@ -318,7 +378,7 @@ def algoritms(surface, type, grid, buttons, start, end):
         print('not found')
         return False
 
-    elif type == 'BreadFirstSearch':
+    elif type == 'Bread First Search':
         
         my_queue = Queue()
         my_queue.append(start)
@@ -363,41 +423,52 @@ def algoritms(surface, type, grid, buttons, start, end):
         print('NOT FOUND')
         return False
 
+
 def visualisation_button_function(button):
     global VISUALISATION
-    if 'ON' in list(button.texts.keys())[1].split(' '):
-        button.texts = {
-            'Visualizations:': {
-                'font': 'comicsans',      
-                'height': 50,
-                'color': BLACK
-            },
-            
-            ' OFF': {
-                'font': 'comicsans',
-                'height': 70,
-                'color': RED
-            }
-        }
-        button.border_color = RED
-        VISUALISATION = False
-    else:
-        button.texts = {
-            'Visualizations:': {
-                'font': 'comicsans',      
-                'height': 50,
-                'color': BLACK
-            },
-            
-            ' ON': {
-                'font': 'comicsans',
-                'height': 70,
-                'color': GREEN
-            }
-        }
-        button.border_color = GREEN
-        VISUALISATION = True
+    for key in button.texts.keys():
+        if button.texts[key]['active'] and key != 'Visualizations:':
+            if 'ON' in key:
+                button.texts[key]['active'] = False
+                button.texts[list(button.texts.keys())[2]]['active'] = True
+                VISUALISATION = False
+                button.border_color = RED
+                break
+            else:
+                button.texts[key]['active'] = False
+                button.texts[list(button.texts.keys())[1]]['active'] = True
+                VISUALISATION = True
+                button.border_color = GREEN
+                break
 
+
+def change_algoritm_button_function(button):
+    global TYPE_OF_ALGORITM
+    keys = list(button.texts.keys())
+    if button.texts[keys[-1]]['active']:
+        button.texts[keys[-1]]['active'] = False
+        button.texts[keys[1]]['active'] = True
+        TYPE_OF_ALGORITM = TYPES_OF_ALGORITMS[0]
+    else:
+        for i, key in enumerate(keys):
+            if i > 0: # the first item is the word 'Types:'
+                if button.texts[key]['active']:
+                    button.texts[key]['active'] = False
+                    button.texts[keys[i + 1]]['active'] = True
+                    TYPE_OF_ALGORITM = TYPES_OF_ALGORITMS[i] # the position in types_of_algoritm is +1 because of the Type: key
+                    break
+
+
+def run_button_function(surface, grid, buttons):
+    for row in grid:
+        for cube in row:
+            cube.get_neighbors(grid)
+    ALGORITM_RUNNING = True
+    algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
+    ALGORITM_RUNNING = False
+
+
+                
 def h(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
@@ -426,6 +497,14 @@ def clear_path(grid):
         for cube in row:
             if cube.is_path() or cube.is_open() or cube.is_closed():
                 cube.reset()
+
+
+def clear_all(grid):
+    global start, end
+    start, end = None, None
+    for row in grid:
+        for cube in row:
+            cube.reset()
 
 
 def get_row_col_from_pos(pos):
