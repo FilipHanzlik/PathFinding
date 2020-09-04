@@ -316,7 +316,7 @@ def main(surface):
                         for cube in row:
                             cube.get_neighbors(grid)
                     ALGORITM_RUNNING = True
-                    clear_path(grid)
+                    clear_path(grid)   
                     algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
                     ALGORITM_RUNNING = False
 
@@ -464,9 +464,9 @@ def run_button_function(surface, grid, buttons):
         for cube in row:
             cube.get_neighbors(grid)
     ALGORITM_RUNNING = True
+    clear_path(grid)
     algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
     ALGORITM_RUNNING = False
-
 
                 
 def h(p1, p2):
