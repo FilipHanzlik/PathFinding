@@ -9,14 +9,15 @@ HEIGHT = 800
 WIDTH_OF_GRID = 800
 HEIGHT_OF_GRID = 800
 ROWS = 50
-VISUALISATION = True
-ALGORITM_RUNNING = False
-start, end = None, None
-TYPES_OF_ALGORITMS = ['A*', 'Bread First Search']
-TYPE_OF_ALGORITM = TYPES_OF_ALGORITMS[0]
+VISUALISATION = True # This variable decides if the visualization of the path finding will be shown
+ALGORITM_RUNNING = False # While this variable is set to True the interface doesnt accept any input excepted the close 'x'. Meanwhile the algoritm is finding the shortest path
+start, end = None, None # Here are stored the start and the end cubes
+TYPES_OF_ALGORITMS = ['A*', 'Bread First Search'] # List of avalaible types of algoritms
+TYPE_OF_ALGORITM = TYPES_OF_ALGORITMS[0] # this variable decides which algoritm will be used to find the shortest path
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('path_finding algoritms')
 
+# rgb colors
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
@@ -30,7 +31,8 @@ TURQUOISE = (64, 224, 208)
 
 class Button:
 
-    def __init__(self, x, y, height, width, color, func=None, border_width=0, border_color=None, texts={}):
+    def __init__(self, id, x, y, height, width, color, func=None, border_width=0, border_color=None, texts={}):
+        self.id = id # this id will be used in the is_clicked method to check if it need to add itself as an argument to the function
         self.x = x
         self.y = y
         self.height = height
@@ -38,10 +40,10 @@ class Button:
         self.color = color
         self.border_width = border_width
         self.border_color = border_color
-        self.total_texts_width = 0 
-        self.temp_text_width = 0
         self.func = func  # this function will be use if the button is clicked
-        self.texts = texts
+        self.texts = texts # The text will be composided of parts
+        self.total_texts_width = 0 # This stores the total lenght of the text displayed (will be used for centering the text)
+        self.temp_text_width = 0 # Store the width of the parts of the text that have already been displayed, to know where to display the next part
     
     def __str__(self):
         return str(list(self.texts.keys()))
@@ -50,7 +52,7 @@ class Button:
         """ Check if the button was clicked and if yes run the function that is assigned to the button """
         if pos[0] > self.x and pos[0] < self.x + self.width:
             if pos[1] > self.y and pos[1] < self.y + self.height:
-                if list(self.texts.keys())[0] in ['Visualizations:', 'Type:']: # These buttons needs themselves as arguments                    
+                if self.id in ['visualization', 'change_algoritm']: # These buttons needs themselves as arguments                    
                     self.func(self)
                 else:
                     self.func()
@@ -71,13 +73,14 @@ class Button:
             self.total_texts_width = 0
             
             for key in self.texts.keys():
-                if self.texts[key]['active']:
+                # the word is the key and the values are its attributes
+                if self.texts[key]['active']: # if the valide attribute is set to false the word will be skiped
                     font = pygame.font.SysFont(self.texts[key]['font'], int(self.height / 100 * self.texts[key]['height']))
                     text = font.render(key, 1, BLACK)
                     self.total_texts_width += text.get_width()
 
             for key in self.texts.keys():
-                if self.texts[key]['active']:
+                if self.texts[key]['active']: # if the valide attribute is set to false the word will be skiped, hence not displayed
                     font = pygame.font.SysFont(self.texts[key]['font'], int(self.height / 100 * self.texts[key]['height']))
                     text = font.render(key, 1, self.texts[key]['color'])
                     surface.blit(text, (self.x + (self.width - self.total_texts_width) // 2 + self.temp_text_width, self.y + (self.height - text.get_height()) // 2))
@@ -114,6 +117,7 @@ class Cube:
         return f'({self.row}, {self.col}) - {self.color}'
     
     def __lt__(self, other):
+        # used when comparing two cubes by the == operator
         if self.get_pos() == other.get_pos():
             return True
         else:
@@ -207,7 +211,7 @@ def main(surface):
             'active': False
         }
     }
-    visualisation_button = Button(WIDTH_OF_GRID, 0, 50, WIDTH - WIDTH_OF_GRID, WHITE, visualisation_button_function, border_width=3, border_color=GREEN, texts=visualisation_button_texts)
+    visualisation_button = Button('visualization', WIDTH_OF_GRID, 0, 50, WIDTH - WIDTH_OF_GRID, WHITE, visualisation_button_function, border_width=3, border_color=GREEN, texts=visualisation_button_texts)
     
     # clear path button
     clear_path_button_texts = {
@@ -218,7 +222,7 @@ def main(surface):
             'active': True
         }
     }
-    clear_path_button = Button(WIDTH_OF_GRID, visualisation_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_path(grid), border_width=3, border_color=BLACK, texts=clear_path_button_texts)
+    clear_path_button = Button('clear_path', WIDTH_OF_GRID, visualisation_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_path(grid), border_width=3, border_color=BLACK, texts=clear_path_button_texts)
     
     # clear all button
     clear_all_button_texts = {
@@ -229,10 +233,10 @@ def main(surface):
             'active': True
         }
     }
-    clear_all_button = Button(WIDTH_OF_GRID, clear_path_button.y + clear_path_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_all(grid), border_width=3, border_color=BLACK, texts=clear_all_button_texts)
+    clear_all_button = Button('clear_all', WIDTH_OF_GRID, clear_path_button.y + clear_path_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: clear_all(grid), border_width=3, border_color=BLACK, texts=clear_all_button_texts)
 
     # button for switching algoritms
-    algoritms_button_texts = {
+    change_algoritm_button_texts = {
         'Type:': {
             'font': 'comicsans',
             'height': 50,
@@ -254,8 +258,9 @@ def main(surface):
             'active': False
         }
     }
-    algoritms_button = Button(WIDTH_OF_GRID, clear_all_button.y + clear_all_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, change_algoritm_button_function, border_width=3, border_color=BLACK, texts=algoritms_button_texts)
+    change_algoritm_button = Button('change_algoritm', WIDTH_OF_GRID, clear_all_button.y + clear_all_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, change_algoritm_button_function, border_width=3, border_color=BLACK, texts=change_algoritm_button_texts)
 
+    # button for starting the path_finding algoritm
     run_button_texts = {
         'Run': {
             'font': 'comicsans',
@@ -264,9 +269,9 @@ def main(surface):
             'active': True
         }
     }
-    run_button = Button(WIDTH_OF_GRID, algoritms_button.y + algoritms_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: run_button_function(surface, grid, buttons), border_width=3, border_color=BLACK, texts=run_button_texts)
+    run_button = Button('run', WIDTH_OF_GRID, change_algoritm_button.y + change_algoritm_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, lambda: run_button_function(surface, grid, buttons), border_width=3, border_color=BLACK, texts=run_button_texts)
 
-    buttons.extend([visualisation_button, clear_path_button, clear_all_button, algoritms_button, run_button])
+    buttons.extend([visualisation_button, clear_path_button, clear_all_button, change_algoritm_button, run_button])
     ## end of buttons ##
 
     while zakladnicyklus:
@@ -274,7 +279,7 @@ def main(surface):
             if event.type == pygame.QUIT:
                 zakladnicyklus = False
             
-            if ALGORITM_RUNNING:
+            if ALGORITM_RUNNING: # If the algoritm is finding the shortest path any other input except pygame.QUIT won't be accepted 
                 continue
 
             if pygame.mouse.get_pressed()[0]: # Left mouse button
@@ -282,10 +287,10 @@ def main(surface):
                 if pos[0] >= WIDTH_OF_GRID:
                     for button in buttons:
                         button.is_clicked(pos)
-                    continue
+                    continue # apply to the 'for event in pygame.event.get()'. If we got here, it means that the click was in the button area and hence there is no need to run the rest of the loop
                 
-                row, col = get_row_col_from_pos(pos)
-                cube = grid[row][col]
+                row, col = get_row_col_from_pos(pos) # converts the x and y coordinate to the row and col in the grid of cubes (row and col starts at 0)
+                cube = grid[row][col] # get the clicked cube 
                 
                 if not start and cube != end and not cube.is_obstacle():
                     start = cube
@@ -309,16 +314,6 @@ def main(surface):
                 
                 elif cube == end:
                     end = None
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and start and end:
-                    for row in grid:
-                        for cube in row:
-                            cube.get_neighbors(grid)
-                    ALGORITM_RUNNING = True
-                    clear_path(grid)   
-                    algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
-                    ALGORITM_RUNNING = False
 
         redraw_window(surface, grid, buttons)
 
