@@ -91,6 +91,10 @@ class Queue:
 
     def __init__(self):
         self.queue = deque()
+
+    def __iter__(self):
+        for x in self.queue:
+            yield x
     
     def append(self, obj):
         self.queue.appendleft(obj)
@@ -384,6 +388,7 @@ def algoritms(surface, type, grid, buttons, start, end):
         
         my_queue = Queue()
         my_queue.append(start)
+        my_queue_hash = {start}
         came_from = {}
 
         while not my_queue.is_empty():
@@ -398,28 +403,23 @@ def algoritms(surface, type, grid, buttons, start, end):
                 while path != start:
                     path.make_path()
                     path = came_from[path]
-                end.make_end()
-
-                if not VISUALISATION:
-                    for row in grid:
-                        for cube in row:
-                            if cube.is_closed() or cube.is_open():
-                                cube.reset()
 
                 return True
 
             for neighbor in current.neighbors:
-                if neighbor.is_blank() or neighbor == end:
-                    neighbor.make_open()
+                if neighbor in my_queue_hash:
+                    continue
+                else:
                     came_from[neighbor] = current
                     my_queue.append(neighbor)
-                else:
-                    continue
-
-            if current != start:
-                current.make_close()
+                    my_queue_hash.add(neighbor)
+                    if VISUALISATION:
+                        if not neighbor == end:
+                            neighbor.make_open()
 
             if VISUALISATION:
+                if current != start:
+                    current.make_close()
                 redraw_window(surface, grid, buttons)
 
         print('NOT FOUND')
@@ -517,13 +517,14 @@ def change_algoritm_button_function(button):
 
 
 def run_button_function(surface, grid, buttons):
-    for row in grid:
-        for cube in row:
-            cube.get_neighbors(grid)
-    ALGORITM_RUNNING = True
-    clear_path(grid)
-    algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
-    ALGORITM_RUNNING = False
+    if start and end:
+        for row in grid:
+            for cube in row:
+                cube.get_neighbors(grid)
+        ALGORITM_RUNNING = True
+        clear_path(grid)
+        algoritms(surface, TYPE_OF_ALGORITM, grid, buttons, start, end)
+        ALGORITM_RUNNING = False
 
                 
 def h(p1, p2):
