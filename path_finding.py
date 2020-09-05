@@ -12,7 +12,7 @@ ROWS = 50
 VISUALISATION = True # This variable decides if the visualization of the path finding will be shown
 ALGORITM_RUNNING = False # While this variable is set to True the interface doesnt accept any input excepted the close 'x'. Meanwhile the algoritm is finding the shortest path
 start, end = None, None # Here are stored the start and the end cubes
-TYPES_OF_ALGORITMS = ['A*', 'Bread First Search'] # List of avalaible types of algoritms
+TYPES_OF_ALGORITMS = ['A*', 'Bread First Search', 'Djikstra'] # List of avalaible types of algoritms
 TYPE_OF_ALGORITM = TYPES_OF_ALGORITMS[0] # this variable decides which algoritm will be used to find the shortest path
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('path_finding algoritms')
@@ -164,14 +164,14 @@ class Cube:
 
     def get_neighbors(self, grid):
         self.neighbors = []
-        if self.row < ROWS - 1 and not grid[self.row + 1][self.col].is_obstacle(): # DOWN
-            self.neighbors.append(grid[self.row + 1][self.col])
-
         if self.row > 0 and not grid[self.row - 1][self.col].is_obstacle(): # UP
             self.neighbors.append(grid[self.row - 1][self.col])
 
         if self.col < ROWS - 1 and not grid[self.row][self.col + 1].is_obstacle(): # RIGHT
             self.neighbors.append(grid[self.row][self.col + 1])
+
+        if self.row < ROWS - 1 and not grid[self.row + 1][self.col].is_obstacle(): # DOWN
+            self.neighbors.append(grid[self.row + 1][self.col])
 
         if self.col > 0 and not grid[self.row][self.col - 1].is_obstacle(): # LEFT
             self.neighbors.append(grid[self.row][self.col - 1])
@@ -256,6 +256,13 @@ def main(surface):
             'height': 45,
             'color': BLACK,
             'active': False
+        },
+
+        ' ' + TYPES_OF_ALGORITMS[2]: {
+            'font': 'comicsans',
+            'height': 50,
+            'color': BLACK,
+            'active': False
         }
     }
     change_algoritm_button = Button('change_algoritm', WIDTH_OF_GRID, clear_all_button.y + clear_all_button.height, 50, WIDTH - WIDTH_OF_GRID, WHITE, change_algoritm_button_function, border_width=3, border_color=BLACK, texts=change_algoritm_button_texts)
@@ -290,7 +297,7 @@ def main(surface):
                     continue # apply to the 'for event in pygame.event.get()'. If we got here, it means that the click was in the button area and hence there is no need to run the rest of the loop
                 
                 row, col = get_row_col_from_pos(pos) # converts the x and y coordinate to the row and col in the grid of cubes (row and col starts at 0)
-                cube = grid[row][col] # get the clicked cube 
+                cube = grid[row][col] # get the clicked cu 
                 
                 if not start and cube != end and not cube.is_obstacle():
                     start = cube
@@ -416,6 +423,61 @@ def algoritms(surface, type, grid, buttons, start, end):
                 redraw_window(surface, grid, buttons)
 
         print('NOT FOUND')
+        return False
+
+    elif type == 'Djikstra':
+        came_from = {}
+        distances = {cube: float('inf') for row in grid for cube in row}
+        distances[start] = 0
+        count = 0
+        my_queue = PriorityQueue()
+        my_queue.put([0, count, start])
+        my_queue_hash = {start}
+        seen = []
+
+        while not my_queue.empty():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+
+            current = my_queue.get()[2]
+            my_queue_hash.remove(current)
+
+            if current == end:
+                current = end
+                while came_from[current] != start:
+                    current = came_from[current]
+                    current.make_path()
+                    if VISUALISATION:
+                        redraw_window(surface, grid, buttons)
+                return True
+            
+            for neighbor in current.neighbors:
+                if neighbor in seen:
+                    continue
+            
+                if distances[neighbor] > distances[current] + 1:
+                    distances[neighbor] = distances[current] + 1
+                    came_from[neighbor] = current
+                    
+                    if current not in my_queue_hash:
+                        count += 1
+                        my_queue.put([distances[neighbor], count, neighbor])
+                        my_queue_hash.add(neighbor) 
+
+                    if VISUALISATION:
+                        if neighbor != end:
+                            neighbor.make_open()
+            
+            seen.append(current)
+
+            if VISUALISATION:
+                if current != start:
+                    current.make_close()
+                redraw_window(surface, grid, buttons)
+
+        
+        print('Not Found')
         return False
 
 
